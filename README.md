@@ -11,13 +11,15 @@ The reason for the name "DECIM8" comes from the evil eyebrows; this robot wants 
 ## The Software Infrastructure
 There are several ways to program a Lego Mindstorms robot but I chose to go with the custom Linux-based OS [ev3dev](https://www.ev3dev.org/).  Ev3dev defines its own API on-top of the Mindstorms hardware to offers support for a lot of programming languages, including C++.  C++ is supported with language binding from the [ev3dev-lang-cpp](https://github.com/ddemidov/ev3dev-lang-cpp) project and this is what this project uses; the header and source files for these binds are included in this project already and they are under the MIT License (see [here](https://github.com/ddemidov/ev3dev-lang-cpp/blob/master/LICENSE.md)) as well.
 
-I develop on a 64-bit processor with Ubuntu and this is far removed from the hardware of the Lego Mindstorms intelligent brick which uses an ARM 9 processor.  Therefore, the best way I have found to compile code for the brick is with the docker image created by the masterminds behind ev3dev itself.  You can find instructions to set-up and use the docker container [here](https://www.ev3dev.org/docs/tutorials/using-docker-to-cross-compile/).  Compile with the following command inside the container:
+I develop on a 64-bit processor with Ubuntu and this is far removed from the hardware of the Lego Mindstorms intelligent brick which uses an ARM 9 processor.  Therefore, the best way I have found to compile code for the brick is with the docker image created by the masterminds behind ev3dev itself.  You can find instructions to set-up and use the docker container [here](https://www.ev3dev.org/docs/tutorials/using-docker-to-cross-compile/).  Compile with the following command inside the container at the root directory level:
 ```
-arm-linux-gnueabi-g++ -std=c++17 -pthread -o OUTPUT_FILE_NAME ev3dev.cpp SOURCE_FILES.cpp -Wall -Wextra
+arm-linux-gnueabi-g++ -std=c++17 -pthread -o OUTPUT_FILE_NAME -I . ev3dev.cpp SOURCE_FILES.cpp -Wall -Wextra
 ```
 Hints and tips:
-- Replace `OUTPUT_FILE_NAME` with something appropriate.  
-- Replace `SOURCE_FILES.cpp` with all the cpp files needed.  
+- The code uses C++17 standards.
+- Replace `OUTPUT_FILE_NAME` with a path and name for the compiled program.
+- The `-I .` ensures the `ev3dev.h` file is found in the root directory.
+- Replace `SOURCE_FILES.cpp` with all the cpp files needed.
 - Set any extra warning flags you might like.
 
 ## Summary of Dependencies
