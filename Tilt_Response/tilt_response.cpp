@@ -3,14 +3,32 @@
  * 
  * Code to make DECIM8 response to tilt with the gyro sensor.
  **/
+#include <algorithm>
+#include <chrono>
+#include <thread>
+#include <deque>
 
 #include "ev3dev.h"
+
+using std::chrono::milliseconds;
+
+int constexpr TWO_SECONDS = 2000;
+int constexpr MILSEC_INTERVAL = 100;
 
 /**
  * Simple check that hardware is available (from GitHub demo code)
  **/ 
 void checkHardwareConnected(bool const condition, std::string const & errorMessage){
     if (!condition) throw std::runtime_error(errorMessage);
+}
+
+bool checkAllElementsAreTheSame(std::deque<int> deck){
+
+    if (std::adjacent_find(deck.begin(), deck.end(), std::not_equal_to<>()) == 
+        deck.end()) 
+        return true;
+
+    return false;
 }
 
 int main(){
@@ -23,16 +41,41 @@ int main(){
     checkHardwareConnected(gyroSensor.connected(), 
         "Needs gyro sensor to be connected.");
 
+    // Keep a thread open to check if the back button is pressed
+    bool exit = false;
+    std::thread exitThread( [&] () {
+        if (ev3dev::button::back.pressed()) exit = true;
+    } );
+
+    // Initial set the gyro sensor to just capture angle
+    gyroSensor.set_mode(gyroSensor.mode_gyro_ang);
+
+    // Before calibrating the sensor let the robot settle first (2 seconds 
+    // without an angle change), just in case the program has been started 
+    // before DECIM8 has been put down
+    std::deque<int> settleReadings;
+    do {
+
+        for (auto i = TWO_SECONDS; i > 0; i =- MILSEC_INTERVAL){
+
+            settleReadings.pop_front();
+            settleReadings.push_back(gyroSensor.value());
+            std::this_thread::sleep_for(milliseconds(MILSEC_INTERVAL));
+        }
+                
+    } while (checkAllElementsAreTheSame(settleReadings) && !exit);
+
+    // Setting the gyro sensor to cal(ibrate) mode immediately calibrates it
+    // to be 0 degrees.
+    gyroSensor.set_mode(gyroSensor.mode_gyro_cal);
+
     // Put the gyro sensor into G&A mode which captures two values:
-    //      [angle, rate and direction of change]
+    //      [angle, rotational speed]
     // Values can be negative or positive depending on which direction the tilt 
     // or change is in. From DECIM8's perspective, tilting left is positive and
     // tilting right is negative.
     gyroSensor.set_mode(gyroSensor.mode_gyro_g_a);
-
-    // Calibrate gyro sensor; let the sensor settle first (2 seconds without 
-    // change), just in case the program has been started before DECIM8 has 
-    // been put down
+    ev3dev::sound::speak("Ready to go!");
 
     // Get GYRO-G&A sensor data, which contains [angle:rate of change]
 
@@ -40,5 +83,6 @@ int main(){
 
     // Move medium motor in relation to how quick DECIM8 is being shook
 
+    exitThread.join();
     return 0;
 }
