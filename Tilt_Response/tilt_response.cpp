@@ -8,6 +8,9 @@
 #include <thread>
 #include <deque>
 
+// For debugging
+#include <iostream>
+
 #include "ev3dev.h"
 
 using std::chrono::milliseconds;
@@ -56,26 +59,29 @@ int main(){
     std::deque<int> settleReadings;
     do {
 
-        for (auto i = TWO_SECONDS; i > 0; i =- MILSEC_INTERVAL){
+        settleReadings.clear();
 
-            settleReadings.pop_front();
+        for (auto i = TWO_SECONDS; i > 0; i -= MILSEC_INTERVAL){
             settleReadings.push_back(gyroSensor.value());
             std::this_thread::sleep_for(milliseconds(MILSEC_INTERVAL));
         }
                 
-    } while (checkAllElementsAreTheSame(settleReadings) && !exit);
+    } while (!exit && !checkAllElementsAreTheSame(settleReadings));
 
-    // Setting the gyro sensor to cal(ibrate) mode immediately calibrates it
-    // to be 0 degrees.
-    gyroSensor.set_mode(gyroSensor.mode_gyro_cal);
+    if (!exit) {
 
-    // Put the gyro sensor into G&A mode which captures two values:
-    //      [angle, rotational speed]
-    // Values can be negative or positive depending on which direction the tilt 
-    // or change is in. From DECIM8's perspective, tilting left is positive and
-    // tilting right is negative.
-    gyroSensor.set_mode(gyroSensor.mode_gyro_g_a);
-    ev3dev::sound::speak("Ready to go!");
+        // Setting the gyro sensor to cal(ibrate) mode immediately calibrates it
+        // to be 0 degrees.
+        gyroSensor.set_mode(gyroSensor.mode_gyro_cal);
+
+        // Put the gyro sensor into G&A mode which captures two values:
+        //      [angle, rotational speed]
+        // Values can be negative or positive depending on which direction the tilt 
+        // or change is in. From DECIM8's perspective, tilting left is positive and
+        // tilting right is negative.
+        gyroSensor.set_mode(gyroSensor.mode_gyro_g_a);
+        ev3dev::sound::speak("Ready to go!");
+    }
 
     // Get GYRO-G&A sensor data, which contains [angle:rate of change]
 
@@ -83,6 +89,7 @@ int main(){
 
     // Move medium motor in relation to how quick DECIM8 is being shook
 
+    
     exitThread.join();
     return 0;
 }
